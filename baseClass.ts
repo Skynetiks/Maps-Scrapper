@@ -95,6 +95,17 @@ export class BaseClass {
 			return null;
 		}
 	}
+
+	async getText(xpath: string, page: Page) {
+		await this.waitForElement(xpath, page);
+		try {
+			const text: string = await page.locator(xpath).innerText();
+			console.info("Text from " + xpath + " is " + text);
+			return text;
+		} catch (error) {
+			console.error("Error getting text from element: " + xpath + " : " + error);
+		}
+	}
 }
 
 export const baseInstance = new BaseClass();

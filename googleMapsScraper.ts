@@ -1,5 +1,6 @@
 import { chromium, Page } from "playwright";
 import { baseInstance } from "./baseClass";
+import { extractDigits} from "./helper";
 
 interface Business {
   name: string;
@@ -51,17 +52,42 @@ async function scrapeGoogleMaps() {
 
   // Iterate through all `a` elements and get their `href` attribute
   for (let i = 0; i < allAnchorElements.length; i++) {
+
+    // XPath for each anchor tag
     const xpath = `(//a[contains(@href,'https://www.google.com/maps/place/')])[${
       i + 1
-    }]`; // XPath for each anchor tag
+    }]`;
+
     const href = await baseInstance.getHtmlAttributeByXPath(
       xpath,
       "href",
       page
     );
+
     if (href) {
       const page2 = await browser.newPage();
       await baseInstance.openURL(href, page2);
+
+      const companyName = await baseInstance.getText("//h1", page2)
+      const rating = await baseInstance.getText("(//span[contains(@aria-label,'stars')])[2]/preceding-sibling::span", page2)
+      const address = (await baseInstance.getText("//button[@data-item-id='address']", page2))?.slice(2)
+      const website = await baseInstance.getHtmlAttributeByXPath("//a[contains(@aria-label,'Website: ')]","href", page2)
+      const phone = extractDigits(await baseInstance.getHtmlAttributeByXPath("//button[contains(@aria-label,'Phone: ')]", "data-item-id", page2) || "")
+
+      if(website){
+        const page3 = await browser.newPage();
+        await baseInstance.openURL(website, page3);
+
+        const pageContent = await page3.content();
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const emails = pageContent.match(emailRegex) || [];
+    
+        // Remove duplicates
+        const uniqueEmail = Array.from(new Set(emails))[0];
+
+        // Close page3
+        await page3.close();
+      }
 
       // Close page2
       await page2.close();
