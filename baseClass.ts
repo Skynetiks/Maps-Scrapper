@@ -99,7 +99,7 @@ export class BaseClass {
 	async getText(xpath: string, page: Page) {
 		await this.waitForElement(xpath, page);
 		try {
-			const text: string = await page.locator(xpath).innerText();
+			const text: string = await page.locator(xpath).innerText({timeout: 2000});
 			console.info("Text from " + xpath + " is " + text);
 			return text;
 		} catch (error) {
