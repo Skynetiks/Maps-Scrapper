@@ -9,6 +9,7 @@ async function getNewContext(browser: Browser) {
   const context = await browser.newContext({
     userAgent:
       userAgentStrings[Math.floor(Math.random() * userAgentStrings.length)],
+      ignoreHTTPSErrors: true
   });
   // context.setDefaultTimeout(60000);
   await context.addInitScript(
