@@ -84,7 +84,7 @@ async function isHrefInDatabase(href: string): Promise<boolean> {
 }
 
 async function scrapeGoogleMaps() {
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await getNewContext(browser);
   const page = await context.newPage();
 
