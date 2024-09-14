@@ -84,7 +84,7 @@ async function isHrefInDatabase(href: string): Promise<boolean> {
 }
 
 async function scrapeGoogleMaps() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: false });
   const context = await getNewContext(browser);
   const page = await context.newPage();
 
@@ -205,9 +205,10 @@ async function scrapeGoogleMaps() {
 
               // Insert into the database
               await query(
-                'INSERT INTO "PublicLeads" ("id", "url", "name", "email", "address", "countryCode", "phone", "website", "rating", "infoCode", "infoMatrix") VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+                'INSERT INTO "PublicLeads" ("id", "url", "industry", "name", "email", "address", "countryCode", "phone", "website", "rating", "infoCode", "infoMatrix") VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
                 [
                   href || "",
+                  companyType,
                   companyName || "",
                   `{${emails.join(",")}}`,
                   address || "",

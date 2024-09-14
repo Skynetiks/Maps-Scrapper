@@ -74,7 +74,6 @@ export const companyTypes = [
   "Embassy",
   "Fire Station",
   "Local Government Office",
-  "Police",
   "Post Office",
   "Dental Clinic",
   "Dentist",
