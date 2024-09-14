@@ -106,6 +106,11 @@ export class BaseClass {
 			console.error("Error getting text from element: " + xpath + " : " + error);
 		}
 	}
+
+	async wait(seconds: number) {
+		console.info("Waiting for " + seconds + " seconds ");
+		return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+	}
 }
 
 export const baseInstance = new BaseClass();
