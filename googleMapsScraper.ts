@@ -121,7 +121,7 @@ async function scrapeGoogleMaps() {
         while (true) {
           await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
           await page.mouse.wheel(0, 1000);
-          await baseInstance.wait(getRandomNumber(1, 3));
+          // await baseInstance.wait(getRandomNumber(1, 3));
           await page.mouse.wheel(0, getRandomNumber(-10, 100));
 
           const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
@@ -147,7 +147,7 @@ async function scrapeGoogleMaps() {
 
               const page2 = await context.newPage();
               await baseInstance.openURL(href, page2);
-              await baseInstance.wait(getRandomNumber(1, 3));
+              // await baseInstance.wait(getRandomNumber(1, 3));
 
               companyName = await baseInstance.getText("//h1", page2);
               rating = await baseInstance.getText(
@@ -177,7 +177,7 @@ async function scrapeGoogleMaps() {
               if (website) {
                 const page3 = await context.newPage();
                 await baseInstance.openURL(website, page3);
-                await baseInstance.wait(getRandomNumber(1, 3));
+                // await baseInstance.wait(getRandomNumber(1, 3));
 
                 const pageContent = await page3.content();
                 console.log("Content is fetched")
