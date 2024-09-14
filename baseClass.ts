@@ -40,9 +40,13 @@ export class BaseClass {
 		}
 	}
 
-    async waitForElement(xpath: string, page: Page) {
+    async waitForElement(xpath: string, page: Page, timeout?: number) {
 		try {
-			await page.waitForSelector(xpath);
+			if(timeout){
+				await page.waitForSelector(xpath, {timeout: timeout * 1000});
+			} else {
+				await page.waitForSelector(xpath);
+			}
 		} catch (error) {
 			console.error("Error waiting for element: " + xpath + " : " + error);
 		}
@@ -97,7 +101,7 @@ export class BaseClass {
 	}
 
 	async getText(xpath: string, page: Page) {
-		await this.waitForElement(xpath, page);
+		await this.waitForElement(xpath, page, 2);
 		try {
 			const text: string = await page.locator(xpath).innerText({timeout: 2000});
 			console.info("Text from " + xpath + " is " + text);
