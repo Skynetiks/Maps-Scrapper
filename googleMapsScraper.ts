@@ -203,13 +203,13 @@ async function scrapeGoogleMaps() {
               );
             }
           } catch (err: any) {
-            console.error(`Error scraping individual result: ${err.message}`);
+            console.error(`Error scraping individual result: ${err}`);
             continue; // Proceed to the next item in the loop even if one fails
           }
         }
       } catch (err: any) {
         console.error(
-          `Error in scraping ${companyType} in ${cityName}: ${err.message}`
+          `Error in scraping ${companyType} in ${cityName}: ${err}`
         );
       }
     }
