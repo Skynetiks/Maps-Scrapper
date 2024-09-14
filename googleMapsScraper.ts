@@ -105,14 +105,13 @@ async function scrapeGoogleMaps() {
 
         // Infinite loop for scraping
         while (true) {
-          // await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
-          // await page.mouse.wheel(0, 1000);
-          // await baseInstance.wait(getRandomNumber(1, 5));
-          // await page.mouse.wheel(0, getRandomNumber(-10, 100));
+          await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
+          await page.mouse.wheel(0, 1000);
+          await baseInstance.wait(getRandomNumber(1, 5));
+          await page.mouse.wheel(0, getRandomNumber(-10, 100));
 
-          // const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
-          // if (reachedBottom) break;
-          break;
+          const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
+          if (reachedBottom) break;
         }
 
         // Get all anchor elements
