@@ -162,7 +162,7 @@ async function scrapeGoogleMaps() {
               if (website) {
                 const page3 = await context.newPage();
                 await baseInstance.openURL(website, page3);
-                await baseInstance.wait(getRandomNumber(1, 2));
+                await baseInstance.wait(getRandomNumber(5, 10));
 
                 const pageContent = await page3.content();
                 const emailRegex =
