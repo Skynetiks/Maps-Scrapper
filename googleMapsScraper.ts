@@ -166,6 +166,7 @@ async function scrapeGoogleMaps() {
                 await baseInstance.wait(getRandomNumber(5, 10));
 
                 const pageContent = await page3.content();
+                console.log("Content is fetched")
                 const emailRegex =
                   /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
                 const pageEmails = pageContent.match(emailRegex) || [];
@@ -185,6 +186,8 @@ async function scrapeGoogleMaps() {
                 website,
                 rating
               );
+
+              console.log("InfoCode generated: "+infoCode);
 
               // Insert into the database
               await query(
