@@ -10,6 +10,7 @@ async function getNewContext(browser: Browser) {
     userAgent:
       userAgentStrings[Math.floor(Math.random() * userAgentStrings.length)],
   });
+  context.setDefaultTimeout(60000);
   await context.addInitScript(
     "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
   );
