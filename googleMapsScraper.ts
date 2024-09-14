@@ -70,6 +70,19 @@ function createInfoCodeAndMatrix(
   return { infoCode, infoMatrix };
 }
 
+async function isHrefInDatabase(href: string): Promise<boolean> {
+  const result = await query(
+    'SELECT COUNT(*) FROM "PublicLeads" WHERE "url" = $1',
+    [href]
+  );
+  if(parseInt(result.rows[0].count, 10) > 0){
+    console.log("Already present in DB - "+href)
+    return true;
+  } else {
+    return false;
+  }
+}
+
 async function scrapeGoogleMaps() {
   const browser = await chromium.launch({ headless: false });
   const context = await getNewContext(browser);
@@ -130,7 +143,8 @@ async function scrapeGoogleMaps() {
               page
             );
 
-            if (href) {
+            if (href && !(await isHrefInDatabase(href))) {
+
               const page2 = await context.newPage();
               await baseInstance.openURL(href, page2);
               await baseInstance.wait(getRandomNumber(1, 2));
