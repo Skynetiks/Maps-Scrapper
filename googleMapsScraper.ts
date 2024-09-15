@@ -20,7 +20,6 @@ async function getNewContext(browser: Browser) {
       userAgentStrings[Math.floor(Math.random() * userAgentStrings.length)],
     ignoreHTTPSErrors: true,
   });
-  context.setDefaultTimeout(60000);
   await context.addInitScript(
     "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
   );
@@ -86,36 +85,8 @@ async function isHrefInDatabase(href: string): Promise<boolean> {
   return parseInt(result.rows[0].count, 10) > 0;
 }
 
-async function scrollAndScrapeResults(page: Page) {
-  const startTime = Date.now();  // Record the start time
-  const maxDuration = 100 * 1000;  // Maximum duration in milliseconds (100 seconds)
-
-  while (true) {
-    await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
-    await page.mouse.wheel(0, 1000);
-    await baseInstance.wait(getRandomNumber(1, 3));
-    await page.mouse.wheel(0, getRandomNumber(-10, 100));
-
-    const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
-    
-    // Break if the bottom is reached
-    if (reachedBottom) {
-      console.log("Reached the end of the list.");
-      break;
-    }
-
-    // Check if 100 seconds have passed, break if so
-    const elapsedTime = Date.now() - startTime;
-    if (elapsedTime > maxDuration) {
-      console.log("Reached the maximum scrolling time (100 seconds).");
-      break;
-    }
-  }
-}
-
-
 async function scrapeCity(companyType: string, cityName: string) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: false });
   const context = await getNewContext(browser);
   const page = await context.newPage();
 
@@ -144,7 +115,15 @@ async function scrapeCity(companyType: string, cityName: string) {
     );
     console.log(`Scraping started for: ${searchQuery}...`);
 
-    await scrollAndScrapeResults(page);
+    while (true) {
+      await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
+      await page.mouse.wheel(0, 1000);
+      await baseInstance.wait(getRandomNumber(1, 3));
+      await page.mouse.wheel(0, getRandomNumber(-10, 100));
+
+      const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
+      if (reachedBottom) break;
+    }
 
     const allAnchorElements = await page.$$(
       "xpath=//a[contains(@href,'https://www.google.com/maps/place/')]"
@@ -254,11 +233,11 @@ async function scrapeCity(companyType: string, cityName: string) {
 
 async function scrapeGoogleMaps() {
   // Split cityNames into chunks of 10 cities each
-  const cityChunks = chunkArray(cityNames, 20);
+  const cityChunks = chunkArray(cityNames, 10);
 
   for (const companyType of companyTypes) {
     for (const cityChunk of cityChunks) {
-      console.log(`Processing a batch of 20 cities: ${cityChunk.join(", ")}`);
+      console.log(`Processing a batch of 10 cities: ${cityChunk.join(", ")}`);
 
       // Run 10 cities in parallel using Promise.all
       await Promise.all(
