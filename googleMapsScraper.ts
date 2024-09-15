@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import { baseInstance } from "./baseClass";
 import { extractDigits, getRandomNumber } from "./helper";
-import { cityNames, companyTypes, userAgentStrings } from "./data";
+import { cityNames, companyTypes, countryCode, countryName, userAgentStrings } from "./data";
 import { Browser, Cookie, Page } from "@playwright/test";
 import { query } from "./db";
 
@@ -80,19 +80,29 @@ function createInfoCodeAndMatrix(
 
 async function isHrefInDatabase(href: string): Promise<boolean> {
   const result = await query(
-    'SELECT COUNT(*) FROM "PublicLeads" WHERE "url" = $1',
+    'SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "url" = $1)',
     [href]
   );
   return parseInt(result.rows[0].count, 10) > 0;
 }
 
+async function isWebsiteInDB(website: string | null): Promise<boolean> {
+  if (!website) return false;
+  const result = await query(
+    'SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "website" = $1)',
+    [website]
+  );
+  return result.rows[0].exists;
+}
+
+
 async function scrollAndScrapeResults(page: Page) {
   const startTime = Date.now();  // Record the start time
-  const maxDuration = 100 * 1000;  // Maximum duration in milliseconds (100 seconds)
+  const maxDuration = 200 * 1000;  // Maximum duration in milliseconds (200 seconds)
 
   while (true) {
     await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
-    await page.mouse.wheel(0, 1000);
+    await page.mouse.wheel(0, 1500);
     await baseInstance.wait(getRandomNumber(1, 3));
     await page.mouse.wheel(0, getRandomNumber(-10, 100));
 
@@ -107,7 +117,7 @@ async function scrollAndScrapeResults(page: Page) {
     // Check if 100 seconds have passed, break if so
     const elapsedTime = Date.now() - startTime;
     if (elapsedTime > maxDuration) {
-      console.log("Reached the maximum scrolling time (100 seconds).");
+      console.log("Reached the maximum scrolling time (200 seconds).");
       break;
     }
   }
@@ -131,7 +141,7 @@ async function scrapeCity(companyType: string, cityName: string) {
     let website: string | null = "";
     let rating: string | undefined = "";
 
-    const searchQuery = `${companyType} in ${cityName}`;
+    const searchQuery = `${companyType} in ${cityName} ${countryName}`;
     console.log(`Searching: ${searchQuery}`);
 
     await baseInstance.openURL("https://www.google.com/maps", page);
@@ -164,6 +174,15 @@ async function scrapeCity(companyType: string, cityName: string) {
         if (href && !(await isHrefInDatabase(href))) {
           page2 = await context.newPage();
           await baseInstance.openURL(href, page2);
+          website = await baseInstance.getHtmlAttributeByXPath(
+            "//a[contains(@aria-label,'Website: ')]",
+            "href",
+            page2
+          );
+          if (await isWebsiteInDB(website)) {
+            console.log(`Website ${website} is already in the database.`);
+            continue;
+          }
 
           companyName = await baseInstance.getText("//h1", page2);
           rating = await baseInstance.getText(
@@ -176,11 +195,7 @@ async function scrapeCity(companyType: string, cityName: string) {
               page2
             )
           )?.slice(2);
-          website = await baseInstance.getHtmlAttributeByXPath(
-            "//a[contains(@aria-label,'Website: ')]",
-            "href",
-            page2
-          );
+         
           phoneNumber = extractDigits(
             (await baseInstance.getHtmlAttributeByXPath(
               "//button[contains(@aria-label,'Phone: ')]",
@@ -228,7 +243,7 @@ async function scrapeCity(companyType: string, cityName: string) {
               companyName || "",
               `{${emails.join(",")}}`,
               address || "",
-              "IN",
+              countryCode,
               phoneNumber,
               website || "",
               rating || "",
@@ -264,7 +279,6 @@ async function scrapeGoogleMaps() {
       await Promise.all(
         cityChunk.map(cityName => scrapeCity(companyType, cityName))
       );
-
       console.log("Batch of 10 cities completed.");
     }
   }
