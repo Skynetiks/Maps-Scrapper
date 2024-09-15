@@ -83,7 +83,7 @@ async function isHrefInDatabase(href: string): Promise<boolean> {
     'SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "url" = $1)',
     [href]
   );
-  return parseInt(result.rows[0].count, 10) > 0;
+  return result.rows[0].exists;
 }
 
 async function isWebsiteInDB(website: string | null): Promise<boolean> {
@@ -251,6 +251,8 @@ async function scrapeCity(companyType: string, cityName: string) {
               `{${infoMatrix.join(",")}}`,
             ]
           );
+        } else {
+          console.log(`URL ${href} is already in the database.`);
         }
       } catch (err: any) {
         console.error(`Error scraping individual result: ${err}`);
