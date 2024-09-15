@@ -127,6 +127,9 @@ export const companyTypes = [
   "Truck Stop",
 ];
 
+export const countryName = "India";
+export const countryCode = "IN";
+
 export const cityNames = [
   "Mumbai",
   "Delhi",
