@@ -1,7 +1,13 @@
 import { chromium } from "playwright";
 import { baseInstance } from "./baseClass";
 import { extractDigits, getRandomNumber } from "./helper";
-import { cityNames, companyTypes, countryCode, countryName, userAgentStrings } from "./data";
+import {
+  cityNames,
+  companyTypes,
+  countryCode,
+  countryName,
+  userAgentStrings,
+} from "./data";
 import { Browser, Cookie, Page } from "@playwright/test";
 import { query } from "./db";
 
@@ -24,7 +30,7 @@ async function getNewContext(browser: Browser) {
   await context.addInitScript(
     "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
   );
-  
+
   const randomCookies: Cookie[] = [
     {
       name: "session_id",
@@ -60,7 +66,14 @@ function createInfoCodeAndMatrix(
   website: string | null,
   rating: string | undefined
 ) {
-  const fields = [name, email.length > 0 ? email : null, address, phone, website, rating];
+  const fields = [
+    name,
+    email.length > 0 ? email : null,
+    address,
+    phone,
+    website,
+    rating,
+  ];
   const labels = ["name", "email", "address", "phone", "website", "rating"];
 
   let infoCode = "";
@@ -95,19 +108,24 @@ async function isWebsiteInDB(website: string | null): Promise<boolean> {
   return result.rows[0].exists;
 }
 
-
 async function scrollAndScrapeResults(page: Page) {
-  const startTime = Date.now();  // Record the start time
-  const maxDuration = 200 * 1000;  // Maximum duration in milliseconds (200 seconds)
+  const startTime = Date.now(); // Record the start time
+  const maxDuration = 200 * 1000; // Maximum duration in milliseconds (200 seconds)
 
   while (true) {
-    await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
+    await baseInstance.hoverOverElement(
+      "//div[contains(@aria-label,'Results')]",
+      page
+    );
     await page.mouse.wheel(0, 1500);
     await baseInstance.wait(getRandomNumber(1, 3));
     await page.mouse.wheel(0, getRandomNumber(-10, 100));
 
-    const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
-    
+    const reachedBottom = await baseInstance.isDisplayedWithoutWait(
+      "//span[contains(text(),'end of the list.')]",
+      page
+    );
+
     // Break if the bottom is reached
     if (reachedBottom) {
       console.log("Reached the end of the list.");
@@ -122,7 +140,6 @@ async function scrollAndScrapeResults(page: Page) {
     }
   }
 }
-
 
 async function scrapeCity(companyType: string, cityName: string) {
   const browser = await chromium.launch({ headless: true });
@@ -165,94 +182,94 @@ async function scrapeCity(companyType: string, cityName: string) {
         const xpath = `(//a[contains(@href,'https://www.google.com/maps/place/')])[${
           i + 1
         }]`;
-        href = await baseInstance.getHtmlAttributeByXPath(
-          xpath,
-          "href",
-          page
-        );
+        href = await baseInstance.getHtmlAttributeByXPath(xpath, "href", page);
 
-        if (href && !(await isHrefInDatabase(href))) {
-          page2 = await context.newPage();
-          await baseInstance.openURL(href, page2);
-          website = await baseInstance.getHtmlAttributeByXPath(
-            "//a[contains(@aria-label,'Website: ')]",
-            "href",
-            page2
-          );
-          if (await isWebsiteInDB(website)) {
-            console.log(`Website ${website} is already in the database.`);
-            continue;
-          }
-
-          companyName = await baseInstance.getText("//h1", page2);
-          rating = await baseInstance.getText(
-            "(//span[contains(@aria-label,'stars')])[2]/preceding-sibling::span",
-            page2
-          );
-          address = (
-            await baseInstance.getText(
-              "//button[@data-item-id='address']",
+        if (href) {
+          if (!(await isHrefInDatabase(href))) {
+            page2 = await context.newPage();
+            await baseInstance.openURL(href, page2);
+            website = await baseInstance.getHtmlAttributeByXPath(
+              "//a[contains(@aria-label,'Website: ')]",
+              "href",
               page2
-            )
-          )?.slice(2);
-         
-          phoneNumber = extractDigits(
-            (await baseInstance.getHtmlAttributeByXPath(
-              "//button[contains(@aria-label,'Phone: ')]",
-              "data-item-id",
-              page2
-            )) || ""
-          );
-
-          if (website) {
-            page3 = await context.newPage();
-            try {
-              await baseInstance.openURL(website, page3);
-
-              const pageContent = await page3.content();
-              console.log("Content is fetched");
-              const emailRegex =
-                /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-              const pageEmails = pageContent.match(emailRegex) || [];
-              emails = Array.from(new Set(pageEmails));
-            } catch (error) {
-              console.error("Error fetching website content:", error);
-            } finally {
-              if (page3) await page3.close();
+            );
+            if (await isWebsiteInDB(website)) {
+              console.log(`Website ${website} is already in the database.`);
+              continue;
             }
-          }
 
-          await page2.close();
+            companyName = await baseInstance.getText("//h1", page2);
+            rating = await baseInstance.getText(
+              "(//span[contains(@aria-label,'stars')])[2]/preceding-sibling::span",
+              page2
+            );
+            address = (
+              await baseInstance.getText(
+                "//button[@data-item-id='address']",
+                page2
+              )
+            )?.slice(2);
 
-          const { infoCode, infoMatrix } = createInfoCodeAndMatrix(
-            companyName,
-            emails,
-            address,
-            phoneNumber,
-            website,
-            rating
-          );
+            phoneNumber = extractDigits(
+              (await baseInstance.getHtmlAttributeByXPath(
+                "//button[contains(@aria-label,'Phone: ')]",
+                "data-item-id",
+                page2
+              )) || ""
+            );
 
-          console.log("InfoCode generated: " + infoCode);
+            if (website) {
+              page3 = await context.newPage();
+              try {
+                await baseInstance.openURL(website, page3);
 
-          await query(
-            'INSERT INTO "PublicLeads" ("id", "url", "industry", "name", "email", "address", "countryCode", "phone", "website", "rating", "infoCode", "infoMatrix") VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-            [
-              href || "",
-              companyType,
-              companyName || "",
-              `{${emails.join(",")}}`,
-              address || "",
-              countryCode,
+                const pageContent = await page3.content();
+                console.log("Content is fetched");
+                const emailRegex =
+                  /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+                const pageEmails = pageContent.match(emailRegex) || [];
+                emails = Array.from(new Set(pageEmails));
+              } catch (error) {
+                console.error("Error fetching website content:", error);
+              } finally {
+                if (page3) await page3.close();
+              }
+            }
+
+            await page2.close();
+
+            const { infoCode, infoMatrix } = createInfoCodeAndMatrix(
+              companyName,
+              emails,
+              address,
               phoneNumber,
-              website || "",
-              rating || "",
-              infoCode,
-              `{${infoMatrix.join(",")}}`,
-            ]
-          );
+              website,
+              rating
+            );
+
+            console.log("InfoCode generated: " + infoCode);
+
+            await query(
+              'INSERT INTO "PublicLeads" ("id", "url", "industry", "name", "email", "address", "countryCode", "phone", "website", "rating", "infoCode", "infoMatrix") VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+              [
+                href || "",
+                companyType,
+                companyName || "",
+                `{${emails.join(",")}}`,
+                address || "",
+                countryCode,
+                phoneNumber,
+                website || "",
+                rating || "",
+                infoCode,
+                `{${infoMatrix.join(",")}}`,
+              ]
+            );
+          } else {
+            console.log(`Href ${href} is already in the database.`);
+          }
         } else {
-          console.log(`URL ${href} is already in the database.`);
+          console.log(`Href not found`);
         }
       } catch (err: any) {
         console.error(`Error scraping individual result: ${err}`);
@@ -261,9 +278,7 @@ async function scrapeCity(companyType: string, cityName: string) {
       }
     }
   } catch (err: any) {
-    console.error(
-      `Error in scraping ${companyType} in ${cityName}: ${err}`
-    );
+    console.error(`Error in scraping ${companyType} in ${cityName}: ${err}`);
   } finally {
     await browser.close();
   }
@@ -279,7 +294,7 @@ async function scrapeGoogleMaps() {
 
       // Run 10 cities in parallel using Promise.all
       await Promise.all(
-        cityChunk.map(cityName => scrapeCity(companyType, cityName))
+        cityChunk.map((cityName) => scrapeCity(companyType, cityName))
       );
       console.log("Batch of 10 cities completed.");
     }
