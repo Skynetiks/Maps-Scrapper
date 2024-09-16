@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser, Page } from "playwright";
 import { baseInstance } from "./baseClass";
 import { extractDigits, getRandomNumber } from "./helper";
 import {
@@ -8,10 +8,9 @@ import {
   countryName,
   userAgentStrings,
 } from "./data";
-import { Browser, Cookie, Page } from "@playwright/test";
+import { Cookie } from "@playwright/test";
 import { query } from "./db";
 
-// Helper to chunk cities array into batches
 function chunkArray<T>(array: T[], chunkSize: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += chunkSize) {
@@ -20,17 +19,13 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
   return chunks;
 }
 
-// Create a new browser context with random user agent and cookies
 async function getNewContext(browser: Browser) {
   const context = await browser.newContext({
     userAgent: userAgentStrings[Math.floor(Math.random() * userAgentStrings.length)],
     ignoreHTTPSErrors: true,
   });
-  
   context.setDefaultTimeout(60000);
-  await context.addInitScript(
-    "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-  );
+  await context.addInitScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
 
   const randomCookies: Cookie[] = [
     {
@@ -59,7 +54,6 @@ async function getNewContext(browser: Browser) {
   return context;
 }
 
-// Create infoCode and infoMatrix for scraped data
 function createInfoCodeAndMatrix(
   name: string | undefined,
   email: string[],
@@ -86,26 +80,17 @@ function createInfoCodeAndMatrix(
   return { infoCode, infoMatrix };
 }
 
-// Check if the href is already in the database
 async function isHrefInDatabase(href: string): Promise<boolean> {
-  const result = await query(
-    'SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "url" = $1)',
-    [href]
-  );
+  const result = await query('SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "url" = $1)', [href]);
   return result.rows[0].exists;
 }
 
-// Check if the website is already in the database
 async function isWebsiteInDB(website: string | null): Promise<boolean> {
   if (!website) return false;
-  const result = await query(
-    'SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "website" = $1)',
-    [website]
-  );
+  const result = await query('SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "website" = $1)', [website]);
   return result.rows[0].exists;
 }
 
-// Scroll through and scrape results from the page
 async function scrollAndScrapeResults(page: Page) {
   const startTime = Date.now();
   const maxDuration = 200 * 1000;
@@ -114,38 +99,23 @@ async function scrollAndScrapeResults(page: Page) {
     await baseInstance.hoverOverElement("//div[contains(@aria-label,'Results')]", page);
     await page.mouse.wheel(0, 1500);
     await baseInstance.wait(getRandomNumber(1, 3));
+    await page.mouse.wheel(0, getRandomNumber(-10, 100));
 
-    const reachedBottom = await baseInstance.isDisplayedWithoutWait(
-      "//span[contains(text(),'end of the list.')]", page
-    );
-    
-    if (reachedBottom) {
-      console.log("Reached the end of the list.");
-      break;
-    }
+    const reachedBottom = await baseInstance.isDisplayedWithoutWait("//span[contains(text(),'end of the list.')]", page);
 
-    if (Date.now() - startTime > maxDuration) {
-      console.log("Reached the maximum scrolling time (200 seconds).");
+    if (reachedBottom || Date.now() - startTime > maxDuration) {
+      console.log("Scrolling stopped.");
       break;
     }
   }
 }
 
-// Scrape data for a specific company type and city
 async function scrapeCity(companyType: string, cityName: string) {
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await getNewContext(browser);
   const page = await context.newPage();
 
   try {
-    let href: string | null;
-    let companyName: string | undefined = "";
-    let emails: string[] = [];
-    let address: string | undefined = "";
-    let phoneNumber: string | null = "";
-    let website: string | null = "";
-    let rating: string | undefined = "";
-
     const searchQuery = `${companyType} in ${cityName} ${countryName}`;
     console.log(`Searching: ${searchQuery}`);
 
@@ -153,8 +123,8 @@ async function scrapeCity(companyType: string, cityName: string) {
     await baseInstance.enterText("input#searchboxinput", searchQuery, page);
     await baseInstance.keyboardPress("Enter", page);
     await baseInstance.waitForElement("//div[contains(@aria-label,'Results')]", page);
-    
     console.log(`Scraping started for: ${searchQuery}...`);
+
     await scrollAndScrapeResults(page);
 
     const allAnchorElements = await page.$$(
@@ -162,39 +132,37 @@ async function scrapeCity(companyType: string, cityName: string) {
     );
 
     for (let i = 0; i < allAnchorElements.length; i++) {
+      let detailPage: Page | undefined;
+
       try {
-        href = await baseInstance.getHtmlAttributeByXPath(
+        const href = await baseInstance.getHtmlAttributeByXPath(
           `(//a[contains(@href,'https://www.google.com/maps/place/')])[${i + 1}]`,
           "href", page
         );
 
         if (href && !(await isHrefInDatabase(href))) {
-          const newPage = await context.newPage();
-          await baseInstance.openURL(href, newPage);
+          detailPage = await context.newPage();
+          await baseInstance.openURL(href, detailPage);
 
-          website = await baseInstance.getHtmlAttributeByXPath(
-            "//a[contains(@aria-label,'Website: ')]", "href", newPage
-          );
+          const website = await baseInstance.getHtmlAttributeByXPath("//a[contains(@aria-label,'Website: ')]", "href", detailPage);
           if (await isWebsiteInDB(website)) {
             console.log(`Website ${website} is already in the database.`);
             continue;
           }
 
-          companyName = await baseInstance.getText("//h1", newPage);
-          rating = await baseInstance.getText(
-            "(//span[contains(@aria-label,'stars')])[2]/preceding-sibling::span", newPage
+          const companyName = await baseInstance.getText("//h1", detailPage);
+          const rating = await baseInstance.getText(
+            "(//span[contains(@aria-label,'stars')])[2]/preceding-sibling::span", detailPage
           );
-          address = (
-            await baseInstance.getText("//button[@data-item-id='address']", newPage)
+          const address = (
+            await baseInstance.getText("//button[@data-item-id='address']", detailPage)
           )?.slice(2);
 
-          phoneNumber = extractDigits(
-            (await baseInstance.getHtmlAttributeByXPath(
-              "//button[contains(@aria-label,'Phone: ')]", "data-item-id", newPage
-            )) || ""
+          const phoneNumber = extractDigits(
+            (await baseInstance.getHtmlAttributeByXPath("//button[contains(@aria-label,'Phone: ')]", "data-item-id", detailPage)) || ""
           );
 
-          // Fetch emails from the website
+          let emails: string[] = [];
           if (website) {
             try {
               const websitePage = await context.newPage();
@@ -208,8 +176,6 @@ async function scrapeCity(companyType: string, cityName: string) {
               console.error("Error fetching website content:", error);
             }
           }
-
-          await newPage.close();
 
           const { infoCode, infoMatrix } = createInfoCodeAndMatrix(
             companyName, emails, address, phoneNumber, website, rating
@@ -239,27 +205,32 @@ async function scrapeCity(companyType: string, cityName: string) {
         }
       } catch (err) {
         console.error(`Error scraping individual result: ${err}`);
+      } finally {
+        if (detailPage) await detailPage.close();
       }
     }
   } catch (err) {
     console.error(`Error in scraping ${companyType} in ${cityName}: ${err}`);
   } finally {
+    await page.close();
     await browser.close();
   }
 }
 
-// Main function to scrape Google Maps in parallel for chunks of cities
 async function scrapeGoogleMaps() {
-  const cityChunks = chunkArray(cityNames, 20);  // Split cities into chunks of 20
+  // Split cityNames into chunks of 20 cities each
+  const cityChunks = chunkArray(cityNames, 20);
 
-  for (const chunk of cityChunks) {
-    const promises = chunk.map(city => 
-      companyTypes.map(type => scrapeCity(type, city))
-    );
-    
-    await Promise.all(promises.flat());
+  for (const companyType of companyTypes) {
+    for (const cityChunk of cityChunks) {
+      console.log(`Processing a batch of 20 cities: ${cityChunk.join(", ")}`);
+
+      await Promise.all(
+        cityChunk.map((cityName) => scrapeCity(companyType, cityName))
+      );
+      console.log("Batch of 20 cities completed.");
+    }
   }
 }
 
-// Start scraping
-scrapeGoogleMaps();
+scrapeGoogleMaps().catch(console.error);
