@@ -87,33 +87,20 @@ export class BaseClass {
     attributeName: string,
     page: Page
   ): Promise<string | null> {
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => {
-        console.info("Operation timed out");
-        resolve(null);
-      }, 5000); // 5 seconds
-    });
-
-    const attributePromise = (async () => {
-      try {
-        const element = page.locator(xpath);
-        if (element) {
-          const attributeValue = await element.getAttribute(attributeName);
-          console.info(
-            attributeName + " for " + xpath + " is " + attributeValue
-          );
-          return attributeValue;
-        } else {
-          console.info("Element not found with XPath:", xpath);
-          return null;
-        }
-      } catch (error) {
-        console.error("Error retrieving HTML attribute:", error);
+    try {
+      const element = page.locator(xpath);
+      if (element) {
+        const attributeValue = await element.getAttribute(attributeName);
+        console.info(attributeName + " for " + xpath + " is " + attributeValue);
+        return attributeValue;
+      } else {
+        console.info("Element not found with XPath:", xpath);
         return null;
       }
-    })();
-
-    return Promise.race([attributePromise, timeoutPromise]);
+    } catch (error) {
+      console.error("Error retrieving HTML attribute:", error);
+      return null;
+    }
   }
 
   async getText(xpath: string, page: Page) {
