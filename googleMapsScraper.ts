@@ -218,17 +218,17 @@ async function scrapeCity(companyType: string, cityName: string) {
 }
 
 async function scrapeGoogleMaps() {
-  // Split cityNames into chunks of 20 cities each
-  const cityChunks = chunkArray(cityNames, 20);
+  // Split cityNames into chunks of 10 cities each
+  const cityChunks = chunkArray(cityNames, 10);
 
   for (const companyType of companyTypes) {
     for (const cityChunk of cityChunks) {
-      console.log(`Processing a batch of 20 cities: ${cityChunk.join(", ")}`);
+      console.log(`Processing a batch of 10 cities: ${cityChunk.join(", ")}`);
 
       await Promise.all(
         cityChunk.map((cityName) => scrapeCity(companyType, cityName))
       );
-      console.log("Batch of 20 cities completed.");
+      console.log("Batch of 10 cities completed.");
     }
   }
 }
