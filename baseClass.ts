@@ -92,7 +92,7 @@ export class BaseClass {
 		  setTimeout(() => {
 			console.info("Operation timed out");
 			resolve(null);
-		  }, 2000); // 2 seconds
+		  }, 5000); // 5 seconds
 		});
 	  
 		const attributePromise = (async () => {
@@ -116,9 +116,9 @@ export class BaseClass {
 	  }	  
 
 	async getText(xpath: string, page: Page) {
-		await this.waitForElement(xpath, page, 2);
+		await this.waitForElement(xpath, page, 5);
 		try {
-			const text: string = await page.locator(xpath).innerText({timeout: 2000});
+			const text: string = await page.locator(xpath).innerText({timeout: 5000});
 			console.info("Text from " + xpath + " is " + text);
 			return text;
 		} catch (error) {
