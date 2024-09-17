@@ -39,9 +39,13 @@ export class BaseClass {
     }
   }
 
-  async waitForElement(xpath: string, page: Page) {
+  async waitForElement(xpath: string, page: Page, timeout?: number) {
     try {
-      await page.waitForSelector(xpath);
+      if(timeout){
+        await page.waitForSelector(xpath, {timeout: timeout*1000});
+      } else {
+        await page.waitForSelector(xpath);
+      }
     } catch (error) {
       console.error("Error waiting for element: " + xpath + " : " + error);
     }
@@ -87,24 +91,37 @@ export class BaseClass {
     attributeName: string,
     page: Page
   ): Promise<string | null> {
-    try {
-      const element = page.locator(xpath);
-      if (element) {
-        const attributeValue = await element.getAttribute(attributeName);
-        console.info(attributeName + " for " + xpath + " is " + attributeValue);
-        return attributeValue;
-      } else {
-        console.info("Element not found with XPath:", xpath);
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        console.info("Operation timed out");
+        resolve(null);
+      }, 10000); // 10 seconds
+    });
+
+    const attributePromise = (async () => {
+      try {
+        const element = page.locator(xpath);
+        if (element) {
+          const attributeValue = await element.getAttribute(attributeName);
+          console.info(
+            attributeName + " for " + xpath + " is " + attributeValue
+          );
+          return attributeValue;
+        } else {
+          console.info("Element not found with XPath:", xpath);
+          return null;
+        }
+      } catch (error) {
+        console.error("Error retrieving HTML attribute:", error);
         return null;
       }
-    } catch (error) {
-      console.error("Error retrieving HTML attribute:", error);
-      return null;
-    }
+    })();
+
+    return Promise.race([attributePromise, timeoutPromise]);
   }
 
   async getText(xpath: string, page: Page) {
-    await this.waitForElement(xpath, page);
+    await this.waitForElement(xpath, page, 10);
     try {
       const text: string = await page.locator(xpath).innerText();
       console.info("Text from " + xpath + " is " + text);
