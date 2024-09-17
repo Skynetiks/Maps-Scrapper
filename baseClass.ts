@@ -102,7 +102,7 @@ export class BaseClass {
       try {
         const element = page.locator(xpath);
         if (element) {
-          const attributeValue = await element.getAttribute(attributeName);
+          const attributeValue = await element.getAttribute(attributeName, {timeout:10000});
           console.info(
             attributeName + " for " + xpath + " is " + attributeValue
           );
