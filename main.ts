@@ -15,11 +15,11 @@ async function runWorker(workerData) {
 }
 
 async function scrapeGoogleMaps() {
-  const cityChunks = chunkArray(cityNames, 25);
+  const cityChunks = chunkArray(cityNames, 20);
 
   for (const companyType of companyTypes) {
     for (const cityChunk of cityChunks) {
-      console.log(`Processing a batch of 25 cities: ${cityChunk.join(", ")}`);
+      console.log(`Processing a batch of 20 cities: ${cityChunk.join(", ")}`);
 
       await Promise.all(
         cityChunk.map((cityName) =>
@@ -27,7 +27,7 @@ async function scrapeGoogleMaps() {
         )
       );
 
-      console.log("Batch of 25 cities completed.");
+      console.log("Batch of 20 cities completed.");
     }
   }
 }

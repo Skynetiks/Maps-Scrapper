@@ -1,10 +1,9 @@
 import { parentPort, workerData } from "worker_threads";
-import { chromium, Browser, Page } from "playwright";
+import { chromium } from "playwright";
 import { baseInstance } from "./baseClass";
 import { extractDigits, getRandomNumber } from "./helper";
 import { query } from "./db";
 import { userAgentStrings } from "./data";
-import { Cookie } from "@playwright/test";
 
 async function getNewContext(browser) {
   const context = await browser.newContext({
