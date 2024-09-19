@@ -2,27 +2,26 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 dotenv.config();
 
-console.log(process.env.DATABASE_URL)
+console.log(process.env.DATABASE_URL);
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+let pool: Pool;
 
-pool.query("SELECT 1", (err, res) => {
-  if (err) {
-    console.error("Unable to connect to the database:", err);
+function getConnection() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    return pool;
   } else {
-    console.log("Database connection successful");
+    return pool;
   }
-});
+}
 
 export const query = async (text: string, params: (string | number)[]) => {
   try {
-    const result = await pool.query(text, params);
+    const result = await getConnection().query(text, params);
     return result;
   } catch (error) {
     throw error;
   }
 };
-
-export default pool;
