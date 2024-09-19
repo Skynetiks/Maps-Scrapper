@@ -1,33 +1,20 @@
+import { parentPort, workerData } from "worker_threads";
 import { chromium, Browser, Page } from "playwright";
 import { baseInstance } from "./baseClass";
 import { extractDigits, getRandomNumber } from "./helper";
-import {
-  cityNames,
-  companyTypes,
-  countryCode,
-  countryName,
-  userAgentStrings,
-} from "./data";
-import { Cookie } from "@playwright/test";
 import { query } from "./db";
+import { userAgentStrings } from "./data";
+import { Cookie } from "@playwright/test";
 
-function chunkArray<T>(array: T[], chunkSize: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += chunkSize) {
-    chunks.push(array.slice(i, i + chunkSize));
-  }
-  return chunks;
-}
-
-async function getNewContext(browser: Browser) {
+async function getNewContext(browser) {
   const context = await browser.newContext({
     userAgent: userAgentStrings[Math.floor(Math.random() * userAgentStrings.length)],
     ignoreHTTPSErrors: true,
   });
-  context.setDefaultTimeout(30000);
+  context.setDefaultTimeout(60000);
   await context.addInitScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})");
 
-  const randomCookies: Cookie[] = [
+  const randomCookies = [
     {
       name: "session_id",
       value: "8923798329",
@@ -55,18 +42,18 @@ async function getNewContext(browser: Browser) {
 }
 
 function createInfoCodeAndMatrix(
-  name: string | undefined,
-  email: string[],
-  address: string | undefined,
-  phone: string | null,
-  website: string | null,
-  rating: string | undefined
+  name,
+  email,
+  address,
+  phone,
+  website,
+  rating
 ) {
   const fields = [name, email.length > 0 ? email : null, address, phone, website, rating];
   const labels = ["name", "email", "address", "phone", "website", "rating"];
 
   let infoCode = "";
-  let infoMatrix: string[] = [];
+  let infoMatrix = [];
 
   fields.forEach((field, index) => {
     if (field) {
@@ -80,18 +67,18 @@ function createInfoCodeAndMatrix(
   return { infoCode, infoMatrix };
 }
 
-async function isHrefInDatabase(href: string): Promise<boolean> {
+async function isHrefInDatabase(href) {
   const result = await query('SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "url" = $1)', [href]);
   return result.rows[0].exists;
 }
 
-async function isWebsiteInDB(website: string | null): Promise<boolean> {
+async function isWebsiteInDB(website) {
   if (!website) return false;
   const result = await query('SELECT EXISTS (SELECT 1 FROM "PublicLeads" WHERE "website" = $1)', [website]);
   return result.rows[0].exists;
 }
 
-async function scrollAndScrapeResults(page: Page) {
+async function scrollAndScrapeResults(page) {
   const startTime = Date.now();
   const maxDuration = 200 * 1000;
 
@@ -110,7 +97,7 @@ async function scrollAndScrapeResults(page: Page) {
   }
 }
 
-async function scrapeCity(companyType: string, cityName: string) {
+async function scrapeCity(companyType, cityName, countryName, countryCode) {
   const browser = await chromium.launch({ headless: true });
   const context = await getNewContext(browser);
   const page = await context.newPage();
@@ -132,7 +119,7 @@ async function scrapeCity(companyType: string, cityName: string) {
     );
 
     for (let i = 0; i < allAnchorElements.length; i++) {
-      let detailPage: Page | undefined;
+      let detailPage;
 
       try {
         const href = await baseInstance.getHtmlAttributeByXPath(
@@ -162,7 +149,7 @@ async function scrapeCity(companyType: string, cityName: string) {
             (await baseInstance.getHtmlAttributeByXPath("//button[contains(@aria-label,'Phone: ')]", "data-item-id", detailPage)) || ""
           );
 
-          let emails: string[] = [];
+          let emails = [];
           if (website) {
             try {
               const websitePage = await context.newPage();
@@ -217,20 +204,8 @@ async function scrapeCity(companyType: string, cityName: string) {
   }
 }
 
-async function scrapeGoogleMaps() {
-  // Split cityNames into chunks of 10 cities each
-  const cityChunks = chunkArray(cityNames, 10);
-
-  for (const companyType of companyTypes) {
-    for (const cityChunk of cityChunks) {
-      console.log(`Processing a batch of 10 cities: ${cityChunk.join(", ")}`);
-
-      await Promise.all(
-        cityChunk.map((cityName) => scrapeCity(companyType, cityName))
-      );
-      console.log("Batch of 10 cities completed.");
-    }
-  }
-}
-
-scrapeGoogleMaps().catch(console.error);
+(async () => {
+  const { companyType, cityName, countryName, countryCode } = workerData;
+  await scrapeCity(companyType, cityName, countryName, countryCode);
+  parentPort.postMessage("done");
+})();

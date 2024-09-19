@@ -6,3 +6,11 @@ export function extractDigits(input: string): string {
 export function getRandomNumber(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+export function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
