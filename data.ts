@@ -1,9 +1,17 @@
 export const companyTypes = [
   "Marketing Agency",
-  // "IT company",
-  // "Recruitment Agency",
-  // "Software Company",
-  // "Construction Company",
+  "IT company",
+  "Recruitment Agency",
+  "Software Company",
+  "Construction Company",
+  "Manufacturing Company",
+  "Consulting Agency",
+  "Travel Agency",
+  "Event Management Company",
+  "Logistics Company",
+  "Financial Services Company",
+  "Real Estate Agency",
+  "Automotive Service",
   // "Car Dealer",
   // "Car Rental",
   // "Car Repair",
@@ -125,19 +133,21 @@ export const companyTypes = [
   // "Bus Station",
   // "Train Station",
   // "Truck Stop",
+  // "Family Office",
+  
 ];
 
-export const cityNames = [
-  "Mumbai",
-  "Delhi",
-  "Bangalore",
-  "Hyderabad",
-  "Ahmedabad",
-  "Chennai",
-  "Kolkata",
-  "Surat",
-  "Pune",
-  "Jaipur",
+// export const cityNames = [
+  // "Mumbai",
+  // "Delhi",
+  // "Bangalore",
+  // "Hyderabad",
+  // "Ahmedabad",
+  // "Chennai",
+  // "Kolkata",
+  // "Surat",
+  // "Pune",
+  // "Jaipur",
 //   "Lucknow",
 //   "Kanpur",
 //   "Nagpur",
@@ -228,10 +238,10 @@ export const cityNames = [
 //   "Jalgaon",
 //   "Udaipur",
 //   "Maheshtala",
-];
+// ];
 
-export const countryName = "India";
-export const countryCode = "IN";
+export const countryName = "United States";
+export const countryCode = "US";
 // export const cityNames = [
 //   "Toronto",
 //   // "Montréal",
@@ -335,7 +345,7 @@ export const countryCode = "IN";
 //   // "Rimouski",
 // ];
 
-// export const cityNames = [
+export const cityNames = [
   // "New York",
   // "Los Angeles", 
   // "Chicago", 
@@ -345,7 +355,7 @@ export const countryCode = "IN";
   // "San Antonio", 
   // "San Diego", 
   // "Dallas", 
-  // "San Jose" 
+  // "San Jose"
   // "Jacksonville", "Indianapolis", "San Francisco", "Austin", "Columbus", 
   // "Fort Worth", "Charlotte", "Detroit", "El Paso", "Memphis", 
   // "Baltimore", "Boston", "Seattle", "Washington", "Nashville-Davidson", 
@@ -365,7 +375,7 @@ export const countryCode = "IN";
   // "Hialeah", "Chesapeake", "Scottsdale", "North Las Vegas", "Irving", 
   // "Fremont", "Irvine", "Birmingham", "Rochester", "San Bernardino", 
   // "Spokane"
-// ]
+]
 
 
 export const userAgentStrings = [

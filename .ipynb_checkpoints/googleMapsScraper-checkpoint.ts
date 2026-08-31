@@ -158,7 +158,7 @@ function extractDomain(url: string): string | null {
 }
 
 async function scrapeCity(companyType: string, cityName: string) {
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await getNewContext(browser);
   const page = await context.newPage();
 
@@ -167,7 +167,7 @@ async function scrapeCity(companyType: string, cityName: string) {
     console.log(`Searching: ${searchQuery}`);
 
     await baseInstance.openURL("https://www.google.com/maps", page);
-    await baseInstance.enterText("//form[@jsaction='submit:omnibox.searchboxFormSubmit']/input", searchQuery, page);
+    await baseInstance.enterText("input#searchboxinput", searchQuery, page);
     await baseInstance.keyboardPress("Enter", page);
     await baseInstance.waitForElement(
       "//div[contains(@aria-label,'Results')]",
